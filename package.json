@@ -1,0 +1,9 @@
+{
+  "name": "node-siege-proxy",
+  "version": "0.0.1",
+  "dependencies": {
+    "coffee-script": "^1.8.0",
+    "http-proxy": "^1.5.3",
+    "optimist": "^0.6.1"
+  }
+}
