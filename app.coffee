@@ -4,9 +4,10 @@ url = require("url")
 httpProxy = require("http-proxy")
 querystring = require("querystring")
 multiparty = require("multiparty")
+curlify = require("request-as-curl")
 
 # Make hostname filter, port and output params required
-argv = require('optimist').usage('Usage: $0 -h [hostname filter] -p [port] -o [output]').demand(['h','p','o']).argv
+argv = require('optimist').usage('Usage: $0 --hostname [hostname filter] --port [port] --output [output file] --curl').demand(['hostname','port','output']).argv
 
 # Set up an http proxy
 proxy = httpProxy.createProxyServer({})
@@ -22,19 +23,32 @@ server = http.createServer (req, res) ->
   target = "#{target}:#{urlObtwbj.port}" if urlObj.port
 
   # We only care about logging specific requests
-  appendToLog = if urlObj.host is argv.h then true else false
+  appendToLog = if urlObj.host is argv.hostname then true else false
 
   # Just make sure that if there is a multipart form or upload we can handle it properly
   form = new multiparty.Form()
   form.parse req, (err, fields, files) ->
-    # Once the body is complete log the request if the hostname has been matched
-    body = querystring.stringify(fields)
-    console.info "REQUEST: #{req.url} #{req.method} #{body}" if appendToLog
-    fs.appendFile(argv.o, "#{req.url} #{req.method} #{body}\n", "utf8") if appendToLog
+    # The body stream is complete
+    if appendToLog
+      # We have the option to log for curl
+      if argv.curl
+        curlCmd = curlify(req)
+        # There seems to be an issue with request-as-curl and normal http requests?
+        # It appends the hostname to the url and we can't really use that.
+        # TODO Maybe *I* am fucking something up here. 
+        requestString = curlCmd.replace "curl '#{target}", "curl '"
+      # Or siege's format
+      else
+        body = querystring.stringify(fields)
+        requestString = "#{req.url} #{req.method} #{body}"
+
+      # And actually write the request string to the output
+      console.info "REQUEST: #{requestString}" 
+      fs.appendFile(argv.output, "#{requestString}\n", "utf8")
 
   # Finally proxy the request to the original destination
   proxy.web req, res, target: target
 
 # Start the http server to the given port
-console.info "Listening on port #{argv.p}"
-server.listen argv.p
+console.info "Listening on port #{argv.port}"
+server.listen argv.port

@@ -5,6 +5,7 @@
     "coffee-script": "^1.8.0",
     "http-proxy": "^1.5.3",
     "multiparty": "^3.3.2",
-    "optimist": "^0.6.1"
+    "optimist": "^0.6.1",
+    "request-as-curl": "^0.1.0"
   }
 }
